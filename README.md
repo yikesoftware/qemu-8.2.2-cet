@@ -50,9 +50,9 @@ Plugin code: [cet.c](./tests/plugin/cet.c)
 
 > Maybe this isn't necessary? I just want glibc to normalize its behavior.
 
-Add arch_prctl handler in syscall for CET: [syscall.c](./linux-user/syscall.c#L6229)
+Add `arch_prctl` syscall handler for CET: [syscall.c](./linux-user/syscall.c#L6229)
 
-Add cpu features in CPUID for CET: [cpu.c](./target/i386/cpu.c#L6171)
+Add IBT/SHSTK cpu features in `CPUID` for CET: [cpu.c](./target/i386/cpu.c#L6171)
 
 ## About
 
