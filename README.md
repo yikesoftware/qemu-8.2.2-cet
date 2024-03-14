@@ -46,7 +46,7 @@ Parameters:
 
 Plugin code: [cet.c](./blob/main/tests/plugin/cet.c)
 
-## Adaptations for GLIBC
+### Adaptations for GLIBC
 
 > Maybe this isn't necessary? I just want glibc to normalize its behavior.
 
