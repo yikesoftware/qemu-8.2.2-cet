@@ -1,6 +1,6 @@
 # QEMU Pseudo-Intel-CET Plugin
 
-Pseudo-Intel-CET functionality plugin based on QEMU 8.2.2 plugin system, with minor modifications to QEMU TCG body code to adapt to Glibc code. The project is currently applicable to ELF emulation in user mode on x86_64 architecture.
+Pseudo-Intel-CET functionality plugin based on QEMU 8.2.2 plugin system, with minor modifications to QEMU TCG to adapt to GLibc. The project is currently applicable to ELF emulation in user mode on x86_64 architecture.
 
 ## compile
 
