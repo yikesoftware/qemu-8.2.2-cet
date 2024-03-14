@@ -40,6 +40,32 @@ Parameters:
 
 - `cpu_slots`: We use a separate slot to track and manage the implementation of CETs in each vCPU. The maximum number of vCPUs is usually the maximum number of currently running threads, so make sure that the number of slots is greater than or equal to the number of threads running at the same time.
 
+### Output
+
+IBT violation reports:
+
+```
+➜ ./qemu-x86_64-cet -plugin ./plugin/libcet.so,mode=user,ibt=on,ss=on,cpu_slots=128 -d plugin ./cet_test 2
+[CET] CET plugin running...
+[QEMU] QEMU mode: user
+[CET] Physical CPU count: 6
+[CET] CPU slots for CET: 128
+[CET-IBT] Initialize CET-IBT
+[CET-IBT] Initialize CET-SS
+[QEMU] vCPU 0 init
+Hello, World!
+cpuid: eax=0x1, ebx=0x21dc47a9, ecx=0x8041028c, edx=0xa4100010
+ibt_supported: 0x1, shstk_supported: 0x1
+func_ptr: 0x55555555728d
+new_func_ptr: 0x555555557291
+[QEMU] vCPU 1 init
+target_function
+[ERROR] !!! IBT violation (vCPU 1) 
+        - caller: 0x5555555574b6        /* callq *%rdx */
+        - callee: 0x555555557291        /* pushq %rbp */
+[1]    547214 segmentation fault (core dumped)  ./qemu-x86_64-cet -plugin  -d plugin ./cet_test 2
+```
+
 ## Implementation
 
 ### Major
