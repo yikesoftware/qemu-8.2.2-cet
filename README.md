@@ -40,6 +40,20 @@ Parameters:
 
 - `cpu_slots`: We use a separate slot to track and manage the implementation of CETs in each vCPU. The maximum number of vCPUs is usually the maximum number of currently running threads, so make sure that the number of slots is greater than or equal to the number of threads running at the same time.
 
-## Other
+## Implement
 
-Original README: [README.rst](./README.rst)
+### Major
+
+Plugin code: [cet.c](./blob/main/tests/plugin/cet.c)
+
+## Adaptations for GLIBC
+
+> Maybe this isn't necessary? I just want glibc to normalize its behavior.
+
+Add arch_prctl handler in syscall for CET: [syscall.c](./blob/main/linux-user/syscall.c#L6229)
+
+Add cpu features in CPUID for CET: [cpu.c](./blob/main/target/i386/cpu.c#L6171)
+
+## About
+
+Original README: [README.rst](./README.orig.rst)
