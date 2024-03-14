@@ -32,7 +32,7 @@ or Example with plugin logs:
 
 Parameters:
 
-- `mode`: This parameter can only be `user`, as testing has only been done in the user state.
+- `mode`: This parameter can only be `user`, as testing has only been done in the user mode.
 
 - `ibt`: Enable CET IBT (indirect branch tracker) function.
 
