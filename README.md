@@ -57,3 +57,5 @@ Add cpu features in CPUID for CET: [cpu.c](./target/i386/cpu.c#L6171)
 ## About
 
 Original README: [README.rst](./README.orig.rst)
+
+E-Mail: jwdong2000@qq.com
