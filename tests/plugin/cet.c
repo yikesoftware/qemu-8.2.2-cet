@@ -150,7 +150,7 @@ static shadow_stack_t *ss_percpu;
             qemu_plugin_outs(g_strdup_printf("\tSSP =>\t| %d | 0x%lx |\t/* %s + %ld */\n",                                   \
                 i, (_ss)->stk_vec.ret_addrs[i], (_ss)->stk_vec.call_insn[i].disas, (_ss)->stk_vec.call_insn[i].size));      \
         } else {                                                                                                            \
-            qemu_plugin_outs(g_strdup_printf("\t\t\t| %d | 0x%lx |\t/* %s + %ld */\n",                                      \
+            qemu_plugin_outs(g_strdup_printf("\t      \t| %d | 0x%lx |\t/* %s + %ld */\n",                                      \
                 i, (_ss)->stk_vec.ret_addrs[i], (_ss)->stk_vec.call_insn[i].disas, (_ss)->stk_vec.call_insn[i].size));      \
         }                                                                                                                   \
     }                                                                                                                       \
@@ -311,6 +311,7 @@ static void cpu_exit_cb(qemu_plugin_id_t id, unsigned int vcpu_index){
     pthread_mutex_unlock(&cpu_lock);
 }
 
+#ifdef CET_HOOK_SYSCALL
 static void vcpu_syscall_cb(qemu_plugin_id_t id, unsigned int vcpu_idx,
                          int64_t num, uint64_t a1, uint64_t a2,
                          uint64_t a3, uint64_t a4, uint64_t a5,
@@ -320,11 +321,13 @@ static void vcpu_syscall_cb(qemu_plugin_id_t id, unsigned int vcpu_idx,
         vcpu_idx, num, a1, a2, a3, a4, a5, a6, a7, a8));
 }
 
+
 static void vcpu_syscall_ret_cb(qemu_plugin_id_t id, unsigned int vcpu_idx,
                              int64_t num, int64_t ret)
 {
     qemu_plugin_outs(g_strdup_printf(LOG_PREFIX "vCPU %d syscall %ld -> return 0x%lx\n", vcpu_idx, num, ret));
 }
+#endif
 
 static int init_cet_ibt(void)
 {
@@ -486,10 +489,10 @@ static void cet_cb_call_insn(cet_cb_ctx_t *cb_ctx, unsigned int cpu_idx, void *u
             qemu_plugin_outs(g_strdup_printf(LOG_PREFIX_SS "SHSTK push failed! (vCPU %d)\n", cpu_idx));
             cet_ss_violation_handler(ss);
         }
-        uint64_t ssp = ss->SSP;
+        
 #ifdef CET_DEBUG    
         qemu_plugin_outs(g_strdup_printf(LOG_PREFIX_SS "SHSTK PUSH: 0x%lx\n", 
-            ss->stk_vec.ret_addrs[ssp]));
+            ss->stk_vec.ret_addrs[ss->SSP]));
 #endif 
 #ifdef CET_DEBUG
         DUMP_SHSTK(ss);
@@ -533,12 +536,12 @@ static void cet_cb_jmp_insn(cet_cb_ctx_t *cb_ctx, unsigned int cpu_idx, void *ud
 static void cet_cb_ret_insn(cet_cb_ctx_t *cb_ctx, unsigned int cpu_idx, void *udata)
 {
     if(SS_ENABLED()){
-        Instruction *ret_insn = (Instruction *)udata;
-        shadow_stack_t *ss = &ss_percpu[cpu_idx];
-        ss->state = SS_RETURN;
 #ifdef CET_DEBUG 
+        Instruction *ret_insn = (Instruction *)udata;
         qemu_plugin_outs(g_strdup_printf(LOG_PREFIX_SS "Ret insn - %s\n", ret_insn->disas));
 #endif
+        shadow_stack_t *ss = &ss_percpu[cpu_idx];
+        ss->state = SS_RETURN;
         return;
     }
 }
