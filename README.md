@@ -40,7 +40,7 @@ Parameters:
 
 - `cpu_slots`: We use a separate slot to track and manage the implementation of CETs in each vCPU. The maximum number of vCPUs is usually the maximum number of currently running threads, so make sure that the number of slots is greater than or equal to the number of threads running at the same time.
 
-## Implement
+## Implementation
 
 ### Major
 
