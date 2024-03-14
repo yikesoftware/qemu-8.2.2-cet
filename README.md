@@ -1,8 +1,8 @@
-# QEMU Pseudo-Intel-CET Plugin
+# QEMU-8.2.2-CET: A Pseudo-Intel-CET Plugin of QEMU
 
 Pseudo-Intel-CET functionality plugin based on QEMU 8.2.2 plugin system, with minor modifications to QEMU TCG to adapt to GLibc. The project is currently applicable to ELF emulation in user mode on x86_64 architecture.
 
-## compile
+## 1. compile
 
 ```bash
 mkdir build
@@ -13,7 +13,7 @@ make -j`nporc`
 
 Plugin location: `./build/tests/plugin/libcet.so`
 
-## Usage
+## 2. Usage
 
 Prepare:
 
@@ -93,7 +93,7 @@ new_func_ptr: 0x555555557231
 [1]    625148 segmentation fault (core dumped)  ./qemu-x86_64-cet -plugin  -d plugin ./cet_test
 ```
 
-## Implementation
+## 3. Implementation
 
 ### Major
 
@@ -107,7 +107,7 @@ Add `arch_prctl` syscall handler for CET: [syscall.c](./linux-user/syscall.c#L62
 
 Add IBT/SHSTK cpu features in `CPUID` for CET: [cpu.c](./target/i386/cpu.c#L6171)
 
-## About
+## 4. About
 
 Original README: [README.rst](./README.orig.rst)
 
