@@ -42,7 +42,7 @@ Parameters:
 
 ### Output
 
-IBT violation reports:
+CET-IBT violation reports:
 
 ```
 ➜ ./qemu-x86_64-cet -plugin ./plugin/libcet.so,mode=user,ibt=on,ss=on,cpu_slots=128 -d plugin ./cet_test 2
@@ -64,6 +64,33 @@ target_function
         - caller: 0x5555555574b6        /* callq *%rdx */
         - callee: 0x555555557291        /* pushq %rbp */
 [1]    547214 segmentation fault (core dumped)  ./qemu-x86_64-cet -plugin  -d plugin ./cet_test 2
+```
+
+CET-SHSTK violation reports:
+
+```
+➜  ./qemu-x86_64-cet -plugin ./plugin/libcet.so,mode=user,ibt=on,ss=on,cpu_slots=128 -d plugin ./cet_test
+[CET] CET plugin running...
+[QEMU] QEMU mode: user
+[CET] Physical CPU count: 6
+[CET] CPU slots for CET: 128
+[CET-IBT] Initialize CET-IBT
+[CET-IBT] Initialize CET-SS
+[QEMU] vCPU 0 init
+Hello, World!
+cpuid: eax=0x1, ebx=0x21dc47a9, ecx=0x8041028c, edx=0xa4100010
+ibt_supported: 0x1, shstk_supported: 0x1
+func_ptr: 0x55555555722d
+new_func_ptr: 0x555555557231
+[CET-SS] SHSTK violation - Mismatched (vCPU 0)
+        - target: 0x555555557508
+        - actual: 0x55555555722d
+        - caller: 0x555555557503        callq 0x555555557426
+        SSP =>  | 3 | 0x555555557508 |  /* callq 0x555555557426 + 5 */
+                | 2 | 0x2aaaab334d90 |  /* callq *%rax + 2 */
+                | 1 | 0x2aaaab334e40 |  /* callq 0x2aaaab334d10 + 5 */
+                | 0 | 0x555555557125 |  /* callq *0x2eb3(%rip) + 6 */
+[1]    625148 segmentation fault (core dumped)  ./qemu-x86_64-cet -plugin  -d plugin ./cet_test
 ```
 
 ## Implementation
