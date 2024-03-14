@@ -19,7 +19,7 @@ Prepare:
 
 ```bash
 ln -s ./build/qemu-x86_64 /path/to/qemu-x86_64-cet
-ln -s ./build/tests/plugin/ /path/to/plugin/libcet.so
+ln -s ./build/tests/plugin/libcet.so /path/to/plugin/libcet.so
 ```
 
 Example: 
