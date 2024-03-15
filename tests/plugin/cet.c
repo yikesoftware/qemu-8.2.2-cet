@@ -23,7 +23,7 @@ QEMU_PLUGIN_EXPORT int qemu_plugin_version = QEMU_PLUGIN_VERSION;
 #define LOG_PREFIX_QEMU "[QEMU] "
 #define LOG_PREFIX_IBT "[CET-IBT] "
 #define LOG_PREFIX_SS "[CET-SS] "
-#define LOG_PREFIX_ERROR "[ERROR] "
+#define LOG_PREFIX_ERROR "[CET-ERR] "
 #define LOG_PREFIX_CALLBACK "[CALLBACK] "
 
 static uint32_t cpu_count;
@@ -407,7 +407,7 @@ static void cet_cb_bb_entry(cet_cb_ctx_t *cb_ctx, unsigned int cpu_idx, void *ud
                 if(target_ret_addr != entry_insn->vaddr){
                     // mismatched
                     ss->state = SS_ERROR;
-                    qemu_plugin_outs(g_strdup_printf(LOG_PREFIX_SS "SHSTK violation - Mismatched (vCPU %d)\n\t- target: 0x%lx\n\t- actual: 0x%lx\n\t- caller: 0x%lx\t%s\n", 
+                    qemu_plugin_outs(g_strdup_printf(LOG_PREFIX_ERROR "SHSTK violation - Mismatched (vCPU %d)\n\t- target: 0x%lx\n\t- actual: 0x%lx\n\t- caller: 0x%lx\t/* %s */\n", 
                         cpu_idx,
                         target_ret_addr, 
                         entry_insn->vaddr,
@@ -421,12 +421,12 @@ static void cet_cb_bb_entry(cet_cb_ctx_t *cb_ctx, unsigned int cpu_idx, void *ud
                     uint64_t res = SHSTK_POP(ss);
                     if(res){
                         ss->state = SS_ERROR;
-                        qemu_plugin_outs(g_strdup_printf(LOG_PREFIX_SS "SHSTK pop failed! (vCPU %d)\n", cpu_idx));
+                        qemu_plugin_outs(g_strdup_printf(LOG_PREFIX_ERROR "SHSTK pop failed! (vCPU %d)\n", cpu_idx));
                         cet_ss_violation_handler(ss);
                     } else{
                         ss->state = SS_IDLE;
     #ifdef CET_DEBUG
-                        qemu_plugin_outs(g_strdup_printf(LOG_PREFIX_SS "SHSTK Matched (vCPU %d): 0x%lx\n", 
+                        qemu_plugin_outs(g_strdup_printf(LOG_PREFIX_ERROR "SHSTK Matched (vCPU %d): 0x%lx\n", 
                             cpu_idx,
                             target_ret_addr));
     #endif           
@@ -434,7 +434,7 @@ static void cet_cb_bb_entry(cet_cb_ctx_t *cb_ctx, unsigned int cpu_idx, void *ud
                 }
             } else{
                 ss->state = SS_ERROR;
-                qemu_plugin_outs(g_strdup_printf(LOG_PREFIX_SS "SHSTK violation (vCPU %d) - SHSTK OOB\n\t- return to: 0x%lx\n", 
+                qemu_plugin_outs(g_strdup_printf(LOG_PREFIX_ERROR "SHSTK violation (vCPU %d) - SHSTK OOB\n\t- return to: 0x%lx\n", 
                     cpu_idx,
                     entry_insn->vaddr
                 ));
