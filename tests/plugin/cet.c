@@ -27,7 +27,7 @@ QEMU_PLUGIN_EXPORT int qemu_plugin_version = QEMU_PLUGIN_VERSION;
 #define LOG_PREFIX_CALLBACK "[CALLBACK] "
 
 static uint32_t cpu_count;
-#define DEFAULT_CPU_SLOTS 16
+#define DEFAULT_CPU_SLOTS 32
 #define MIN_CPU_SLOTS 1
 #define MAX_CPU_SLOTS 4096
 static uint32_t cpu_slots = DEFAULT_CPU_SLOTS;
