@@ -145,13 +145,21 @@ static shadow_stack_t *ss_percpu;
     _ret;                                                                                                   \
 })
 #define DUMP_SHSTK(_ss) ({                                                                                                  \
+    char _dumpstk_disas_internal_buf[0x100] = {0};                                                                          \
     for(int i = (_ss)->SSP; i >= 0; i--){                                                                                   \
+        char *disas_res = plugin_disas_hack((_ss)->stk_vec.call_insn[i].vaddr+(_ss)->stk_vec.call_insn[i].size);            \
+        if(disas_res){                                                                                                      \
+            snprintf(_dumpstk_disas_internal_buf, 0x100, "%s", disas_res);                                                  \
+            g_free(disas_res);                                                                                              \
+        } else{                                                                                                             \
+            snprintf(_dumpstk_disas_internal_buf, 0x100, "Hacking disasm failed: no capstone?");                            \
+        }                                                                                                                   \
         if(unlikely(i == (_ss)->SSP)){                                                                                      \
-            qemu_plugin_outs(g_strdup_printf("\tSSP =>\t| %d | 0x%lx |\t/* %s + %ld */\n",                                   \
-                i, (_ss)->stk_vec.ret_addrs[i], (_ss)->stk_vec.call_insn[i].disas, (_ss)->stk_vec.call_insn[i].size));      \
+            qemu_plugin_outs(g_strdup_printf("\tSSP =>\t| %d | 0x%lx |\t/* %s */\n",                                        \
+                i, (_ss)->stk_vec.ret_addrs[i], _dumpstk_disas_internal_buf));                                              \
         } else {                                                                                                            \
-            qemu_plugin_outs(g_strdup_printf("\t      \t| %d | 0x%lx |\t/* %s + %ld */\n",                                      \
-                i, (_ss)->stk_vec.ret_addrs[i], (_ss)->stk_vec.call_insn[i].disas, (_ss)->stk_vec.call_insn[i].size));      \
+            qemu_plugin_outs(g_strdup_printf("\t      \t| %d | 0x%lx |\t/* %s */\n",                                        \
+                i, (_ss)->stk_vec.ret_addrs[i], _dumpstk_disas_internal_buf));                                              \
         }                                                                                                                   \
     }                                                                                                                       \
 })
@@ -184,6 +192,21 @@ typedef struct {
             ;           \
     } while(0)
 
+/* Fuck qemu! Why not give me a single disas API or just give me the fucking CPUState */
+char *plugin_disas_hack(uint64_t addr);
+char *plugin_disas_hack(uint64_t addr)
+{
+    struct _GByteArray ba;
+    struct hack_insn{
+        struct _GByteArray *data;
+        uint64_t vaddr;
+    } tmp_insn;
+    tmp_insn.vaddr = addr;
+    tmp_insn.data = &ba;
+    tmp_insn.data->len = 15;
+    char *res = qemu_plugin_insn_disas((const struct qemu_plugin_insn *)&tmp_insn);
+    return res;
+}
 
 
 static void force_thread_sig(int sig){
@@ -363,6 +386,7 @@ static int init_cet_ss(void)
 
 static void cet_cb_bb_entry(cet_cb_ctx_t *cb_ctx, unsigned int cpu_idx, void *udata)
 {
+    char disas_buf[0x30] = {0};
     Instruction *entry_insn = (Instruction *)udata;
     assert(entry_insn != NULL);
     // process IBT
@@ -407,12 +431,23 @@ static void cet_cb_bb_entry(cet_cb_ctx_t *cb_ctx, unsigned int cpu_idx, void *ud
                 if(target_ret_addr != entry_insn->vaddr){
                     // mismatched
                     ss->state = SS_ERROR;
-                    qemu_plugin_outs(g_strdup_printf(LOG_PREFIX_ERROR "SHSTK violation - Mismatched (vCPU %d)\n\t- target: 0x%lx\n\t- actual: 0x%lx\n\t- caller: 0x%lx\t/* %s */\n", 
+                    char *target_disas_res = plugin_disas_hack(target_ret_addr);
+                    if(target_disas_res){
+                        snprintf(disas_buf, sizeof(disas_buf), "%s", target_disas_res);
+                        g_free(target_disas_res);
+                    } else{
+                        snprintf(disas_buf, sizeof(disas_buf), "Hacking disasm failed: no capstone?");
+                    }
+                    qemu_plugin_outs(g_strdup_printf(
+                        LOG_PREFIX_ERROR "SHSTK violation - Mismatched (vCPU %d)\n\t- target(√): 0x%lx\t/* %s */\n\t- actual(×): 0x%lx\t/* %s */\n\t- caller   : 0x%lx\t/* %s */\n", 
                         cpu_idx,
-                        target_ret_addr, 
+                        target_ret_addr,
+                        disas_buf, 
                         entry_insn->vaddr,
+                        entry_insn->disas,
                         ss->stk_vec.call_insn[ss->SSP].vaddr,
                         ss->stk_vec.call_insn[ss->SSP].disas));
+                    qemu_plugin_outs(g_strdup_printf("\t*** DUMP SHSTK ***\n"));
                     DUMP_SHSTK(ss);
                     SHSTK_POP(ss);
                     cet_ss_violation_handler(ss);
@@ -425,19 +460,27 @@ static void cet_cb_bb_entry(cet_cb_ctx_t *cb_ctx, unsigned int cpu_idx, void *ud
                         cet_ss_violation_handler(ss);
                     } else{
                         ss->state = SS_IDLE;
-    #ifdef CET_DEBUG
-                        qemu_plugin_outs(g_strdup_printf(LOG_PREFIX_ERROR "SHSTK Matched (vCPU %d): 0x%lx\n", 
+#ifdef CET_DEBUG
+                        char *target_disas_res = plugin_disas_hack(target_ret_addr);
+                        if(target_disas_res){
+                            snprintf(disas_buf, sizeof(disas_buf), "%s", target_disas_res);
+                            g_free(target_disas_res);
+                        } else{
+                            snprintf(disas_buf, sizeof(disas_buf), "Hacking disasm failed: no capstone?");
+                        }
+                        qemu_plugin_outs(g_strdup_printf(LOG_PREFIX_ERROR "SHSTK Matched (vCPU %d): 0x%lx\t/* %s */\n", 
                             cpu_idx,
-                            target_ret_addr));
-    #endif           
+                            target_ret_addr,
+                            disas_buf));
+#endif           
                     }     
                 }
             } else{
                 ss->state = SS_ERROR;
-                qemu_plugin_outs(g_strdup_printf(LOG_PREFIX_ERROR "SHSTK violation (vCPU %d) - SHSTK OOB\n\t- return to: 0x%lx\n", 
+                qemu_plugin_outs(g_strdup_printf(LOG_PREFIX_ERROR "SHSTK violation (vCPU %d) - SHSTK OOB\n\t- return to: 0x%lx\t/* %s */\n", 
                     cpu_idx,
-                    entry_insn->vaddr
-                ));
+                    entry_insn->vaddr,
+                    entry_insn->disas));
                 cet_ss_violation_handler(ss);
             }
         }

@@ -5,6 +5,10 @@ Pseudo-Intel-CET functionality plugin based on QEMU 8.2.2 plugin system, with mi
 ## 1. compile
 
 ```bash
+# Installing capstone to automated enable it in QEMU (must).
+sudo apt install libcapstone-dev libcapstone4 capstone-tool
+
+# Build entire QEMU (includes plugins)
 mkdir build
 cd build
 ../configure --enable-plugins --enable-seccomp --enable-tcg-interpreter --target-list=x86_64-linux-user
@@ -45,7 +49,7 @@ Parameters:
 CET-IBT violation reports:
 
 ```
-➜ ./qemu-x86_64-cet -plugin ./plugin/libcet.so,mode=user,ibt=on,ss=on,cpu_slots=128 -d plugin ./cet_test 2
+➜  ./qemu-x86_64-cet -plugin ./plugin/libcet.so,mode=user,ibt=on,ss=on,cpu_slots=128 -d plugin ./cet_test
 [CET] CET plugin running...
 [QEMU] QEMU mode: user
 [CET] Physical CPU count: 6
@@ -56,14 +60,13 @@ CET-IBT violation reports:
 Hello, World!
 cpuid: eax=0x1, ebx=0x21dc47a9, ecx=0x8041028c, edx=0xa4100010
 ibt_supported: 0x1, shstk_supported: 0x1
-func_ptr: 0x55555555728d
-new_func_ptr: 0x555555557291
-[QEMU] vCPU 1 init
+func_ptr: 0x55555555722d
+new_func_ptr: 0x555555557231
 target_function
-[ERROR] !!! IBT violation (vCPU 1) 
-        - caller: 0x5555555574b6        /* callq *%rdx */
-        - callee: 0x555555557291        /* pushq %rbp */
-[1]    547214 segmentation fault (core dumped)  ./qemu-x86_64-cet -plugin  -d plugin ./cet_test 2
+[CET-ERR] !!! IBT violation (vCPU 0) 
+        - caller: 0x555555557512        /* callq *%rdx */
+        - callee: 0x555555557231        /* pushq %rbp */
+[1]    54041 segmentation fault (core dumped)  ./qemu-x86_64-cet -plugin  -d plugin ./cet_test
 ```
 
 CET-SHSTK violation reports:
@@ -82,15 +85,16 @@ cpuid: eax=0x1, ebx=0x21dc47a9, ecx=0x8041028c, edx=0xa4100010
 ibt_supported: 0x1, shstk_supported: 0x1
 func_ptr: 0x55555555722d
 new_func_ptr: 0x555555557231
-[CET-SS] SHSTK violation - Mismatched (vCPU 0)
-        - target: 0x555555557508
-        - actual: 0x55555555722d
-        - caller: 0x555555557503        callq 0x555555557426
-        SSP =>  | 3 | 0x555555557508 |  /* callq 0x555555557426 + 5 */
-                | 2 | 0x2aaaab334d90 |  /* callq *%rax + 2 */
-                | 1 | 0x2aaaab334e40 |  /* callq 0x2aaaab334d10 + 5 */
-                | 0 | 0x555555557125 |  /* callq *0x2eb3(%rip) + 6 */
-[1]    625148 segmentation fault (core dumped)  ./qemu-x86_64-cet -plugin  -d plugin ./cet_test
+[CET-ERR] SHSTK violation - Mismatched (vCPU 0)
+        - target(√): 0x555555557508     /* leaq 0xbd8(%rip), %rax */
+        - actual(×): 0x55555555722d     /* endbr64  */
+        - caller   : 0x555555557503     /* callq 0x555555557426 */
+        *** DUMP SHSTK ***
+        SSP =>  | 3 | 0x555555557508 |  /* leaq 0xbd8(%rip), %rax */
+                | 2 | 0x2aaaab334d90 |  /* movl %eax, %edi */
+                | 1 | 0x2aaaab334e40 |  /* movq 0x1f0159(%rip), %r15 */
+                | 0 | 0x555555557125 |  /* hlt  */
+[1]    53184 segmentation fault (core dumped)  ./qemu-x86_64-cet -plugin  -d plugin ./cet_test
 ```
 
 ## 3. Implementation
