@@ -12,7 +12,7 @@ sudo apt install libcapstone-dev libcapstone4 capstone-tool
 mkdir build
 cd build
 ../configure --enable-plugins --enable-seccomp --enable-tcg-interpreter --target-list=x86_64-linux-user
-make -j`nporc`
+make -j`nproc`
 ```
 
 Plugin location: `./build/tests/plugin/libcet.so`
